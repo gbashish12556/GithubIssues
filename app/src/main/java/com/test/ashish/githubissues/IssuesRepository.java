@@ -2,6 +2,7 @@ package com.test.ashish.githubissues;
 
 import android.app.Application;
 import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.MutableLiveData;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -20,6 +21,7 @@ import retrofit2.Response;
 public class IssuesRepository {
 
     private IssuesDao issuesDao;
+    private MutableLiveData<Boolean> status;
 
     public IssuesRepository(Application application){
         IssuesDatabase  noteDatabase = IssuesDatabase.getInstance(application);
@@ -36,7 +38,17 @@ public class IssuesRepository {
 
     public LiveData<List<Issues>> getAllIssues(String orgName, String repoName) {
         LiveData<List<Issues>> issues = issuesDao.getAllIssue(orgName, repoName);
+        if(issues.getValue() == null){
+            fetchApi(orgName,repoName);
+        }
         return issues;
+    }
+
+    public MutableLiveData<Boolean> getCurrentStatus() {
+        if (status == null) {
+            status = new MutableLiveData<Boolean>();
+        }
+        return status;
     }
 
     public void fetchApi(String orgName, String repoName){
@@ -55,12 +67,19 @@ public class IssuesRepository {
 
                 if (response.code() == 200) {
                     List<GithubIssuesResponse> reponse = response.body();
-                    insert(convertToIssues(reponse));
+                    if(reponse.size()>0) {
+                        insert(convertToIssues(reponse));
+                    }else{
+                        status.setValue(false);
+                    }
+                }else{
+                    status.setValue(false);
                 }
             }
 
             @Override
             public void onFailure(Call<List<GithubIssuesResponse>> call, Throwable t) {
+                status.setValue(false);
             }
 
         });
@@ -76,12 +95,19 @@ public class IssuesRepository {
                 if (response.code() == 200) {
                     List<GithubIssuesResponse> reponse = response.body();
                     insert(convertToIssues(reponse));
+                    if(reponse.size()>0) {
+                        insert(convertToIssues(reponse));
+                    }else{
+                        status.setValue(false);
+                    }
+                }else{
+                    status.setValue(false);
                 }
             }
 
             @Override
             public void onFailure(Call<List<GithubIssuesResponse>> call, Throwable t) {
-
+                status.setValue(false);
             }
 
         });
@@ -95,7 +121,6 @@ public class IssuesRepository {
 
             GithubIssuesResponse item = response.get(i);
 
-             Log.d("repoUrl",item.getRepositoryUrl());
              String[] repoUrlArray = item.getRepositoryUrl().replace("https://api.github.com/repos","").split("/");
 
             String pathcUrl = "";

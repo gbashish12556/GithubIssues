@@ -38,7 +38,6 @@ public class ResultActivity extends AppCompatActivity {
         setContentView(R.layout.activity_result);
 
         issuesViewModel = (IssuesViewModel) ViewModelProviders.of(this).get(IssuesViewModel.class);
-//        issuesViewModel.deleteAll((new Date()).getTime());
         issuesViewModel.deleteAll((new Date()).getTime()-30*60*1000);
 
         if(getIntent() != null && getIntent().getStringExtra("org_name") != null){
@@ -54,6 +53,14 @@ public class ResultActivity extends AppCompatActivity {
 
         recyclerView.setAdapter(noteAdapter);
 
+        issuesViewModel.getCurrentStatus().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(@Nullable Boolean aBoolean) {
+                if(aBoolean == false){
+                    Toast.makeText(ResultActivity.this,"No Match Found", Toast.LENGTH_LONG).show();
+                }
+            }
+        });
 
         issuesViewModel.getAllIssues(orgName,repoName).observe(this,new Observer<List<Issues>>() {
             @Override
@@ -61,16 +68,7 @@ public class ResultActivity extends AppCompatActivity {
                 //Data Changed
                 if(issues.size()>0) {
                     noteAdapter.resetList(issues);
-                }else{
-                    if(attempt == 0) {
-                        attempt++;
-                        issuesViewModel.fetchApi(orgName, repoName);
-                    }else{
-                        Log.d("noMatch","noMatch");
-                        Toast.makeText(ResultActivity.this,"No Match Found", Toast.LENGTH_LONG).show();
-                    }
                 }
-
             }
         });
     }
